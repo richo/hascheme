@@ -47,6 +47,9 @@ readExpr input = case parse parseExpr "scheme" input of
 
 main :: IO ()
 main = do
-    line <- getLine
-    putStrLn (readExpr line)
-    main
+    args <- getArgs
+    case length args of
+        0 -> do line <- getLine
+                putStrLn (readExpr line)
+        _ -> putStrLn (readExpr $ args !! 0)
+             main
