@@ -93,6 +93,7 @@ primitives = [("+", numericBinop (+)),
               ("remainder", numericBinop rem),
               ("symbol?", isAtom),
               ("symbol->string", atomToString),
+              ("string->symbol", stringToAtom),
               ("number?", isNumber),
               ("string?", isString)]
 
@@ -105,6 +106,11 @@ atomToString :: [LispVal] -> LispVal
 atomToString params = case head params of
                     (Atom n) -> String n
                     _        -> Bool False
+
+stringToAtom :: [LispVal] -> LispVal
+stringToAtom params = case head params of
+                    (String n) -> Atom n
+                    _          -> Bool False
 
 isNumber :: [LispVal] -> LispVal
 isNumber params = case head params of
