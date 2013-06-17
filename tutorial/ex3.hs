@@ -73,11 +73,13 @@ showVal (Bool False)           = "#f"
 showVal (List contents)        = "(" ++ unwordsList contents ++ ")"
 showVal (DottedList head tail) = "(" ++ unwordsList head ++ " . " ++ showVal tail ++ ")"
 
+instance Show LispVal where show = showVal
+
 
 readExpr :: String -> String
 readExpr input = case parse parseExpr "scheme" input of
     Left err -> "No match: " ++ show err
-    Right val -> "Found val"
+    Right val -> "Found val:" ++ show val
 
 main :: IO ()
 main = do
