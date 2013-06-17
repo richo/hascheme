@@ -1,6 +1,7 @@
 module Main where
 import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
+import Control.Monad
 
 symbol :: Parser Char
 symbol = oneOf "!#$%^|*+-/:<=>?@^_~"
@@ -38,6 +39,16 @@ parseExpr :: Parser LispVal
 parseExpr = parseAtom
         <|> parseString
         <|> parseNumber
+
+
+parseList :: Parser LispVal
+parseList = liftM List $ sepBy parseExpr spaces
+
+parseDottedList :: Parser LispVal
+parseDottedList = do
+                  head <- endBy parseExpr spaces
+                  tail <- char '.' >> spaces >> parseExpr
+                  return $ DottedList head tail
 
 
 readExpr :: String -> String
