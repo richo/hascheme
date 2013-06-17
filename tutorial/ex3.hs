@@ -90,7 +90,26 @@ primitives = [("+", numericBinop (+)),
               ("/", numericBinop div),
               ("mod", numericBinop mod),
               ("quotient", numericBinop quot),
-              ("remainder", numericBinop rem)]
+              ("remainder", numericBinop rem),
+              ("symbol?", isAtom),
+              ("number?", isNumber),
+              ("string?", isString)]
+
+isAtom :: [LispVal] -> LispVal
+isAtom params = case head params of
+                    (Atom _) -> Bool True
+                    _        -> Bool False
+
+isNumber :: [LispVal] -> LispVal
+isNumber params = case head params of
+                    (Number _) -> Bool True
+                    _          -> Bool False
+
+isString :: [LispVal] -> LispVal
+isString params = case head params of
+                    (String _) -> Bool True
+                    _          -> Bool False
+
 
 numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
 numericBinop op params = Number $ foldl1 op $ map unpackNum params
