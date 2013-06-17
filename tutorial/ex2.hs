@@ -39,6 +39,11 @@ parseExpr :: Parser LispVal
 parseExpr = parseAtom
         <|> parseString
         <|> parseNumber
+        <|> parseQuoted
+        <|> do char '('
+               x <- try parseList <|> parseDottedList
+               char ')'
+               return x
 
 
 parseList :: Parser LispVal
