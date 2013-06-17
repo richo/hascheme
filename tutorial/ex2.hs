@@ -50,6 +50,12 @@ parseDottedList = do
                   tail <- char '.' >> spaces >> parseExpr
                   return $ DottedList head tail
 
+parseQuoted :: Parser LispVal
+parseQuoted = do
+              char '\''
+              x <- parseExpr
+              return $ List [Atom "quote", x]
+
 
 readExpr :: String -> String
 readExpr input = case parse parseExpr "scheme" input of
