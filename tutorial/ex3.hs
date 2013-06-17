@@ -73,16 +73,22 @@ showVal (Bool False)           = "#f"
 showVal (List contents)        = "(" ++ unwordsList contents ++ ")"
 showVal (DottedList head tail) = "(" ++ unwordsList head ++ " . " ++ showVal tail ++ ")"
 
+eval :: LispVal -> LispVal
+eval val@(String _)             = val
+eval val@(Number _)             = val
+eval val@(Bool _)               = val
+eval (List [Atom "quote", val]) = val
+
 instance Show LispVal where show = showVal
 
 
-readExpr :: String -> String
+readExpr :: String -> LispVal
 readExpr input = case parse parseExpr "scheme" input of
-    Left err -> "No match: " ++ show err
-    Right val -> "Found val:" ++ show val
+    Left err -> String $ "No match: " ++ show err
+    Right val -> val
 
 main :: IO ()
 main = do
     line <- getLine
-    putStrLn (readExpr line)
+    print (eval $ readExpr line)
     main
