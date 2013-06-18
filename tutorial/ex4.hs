@@ -127,15 +127,15 @@ primitives = [("+", numericBinop (+)),
               ("/", numericBinop div),
               ("mod", numericBinop mod),
               ("quotient", numericBinop quot),
-              ("remainder", numericBinop rem)]
-              -- ("symbol?", typePredicate isAtom),
-              -- ("symbol->string", atomToString),
-              -- ("string->symbol", stringToAtom),
-              -- ("string?", typePredicate isString),
-              -- ("number?", typePredicate isNumber)]
+              ("remainder", numericBinop rem),
+              ("symbol?", typePredicate isAtom),
+              ("symbol->string", atomToString),
+              ("string->symbol", stringToAtom),
+              ("string?", typePredicate isString),
+              ("number?", typePredicate isNumber)]
 
-typePredicate :: (LispVal -> Bool) -> [LispVal] -> LispVal
-typePredicate predicate params = Bool $ predicate $ head params
+typePredicate :: (LispVal -> Bool) -> [LispVal] -> ThrowsError LispVal
+typePredicate predicate params = return $ Bool $ predicate $ head params
 
 isNumber :: LispVal -> Bool
 isNumber (Number _) = True
@@ -149,15 +149,15 @@ isString :: LispVal -> Bool
 isString (String _) = True
 isString _          = False
 
-atomToString :: [LispVal] -> LispVal
+atomToString :: [LispVal] -> ThrowsError LispVal
 atomToString params = case head params of
-                    (Atom n) -> String n
-                    _        -> Bool False
+                    (Atom n) -> return $ String n
+                    notAtom        -> throwError $ TypeMismatch "symbol" notAtom
 
-stringToAtom :: [LispVal] -> LispVal
+stringToAtom :: [LispVal] -> ThrowsError LispVal
 stringToAtom params = case head params of
-                    (String n) -> Atom n
-                    _          -> Bool False
+                    (String n) -> return $ Atom n
+                    notString  -> throwError $ TypeMismatch "string" notString
 
 
 numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> ThrowsError LispVal
