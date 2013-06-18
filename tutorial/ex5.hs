@@ -121,6 +121,7 @@ eval (List [Atom "if", pred, conseq, alt]) =
          Bool False -> eval alt
          otherwise -> eval conseq
 eval (List (Atom "cond" : clauses)) = do evalCond clauses
+eval (List (Atom "begin": expressions)) = do evalExpressions expressions
 eval (List (Atom func : args))  = mapM eval args >>= apply func
 eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
@@ -200,6 +201,12 @@ evalCond (List [predicate, result]:cs) = do
     case b of
         (Bool False) -> evalCond cs
         otherwise    -> eval result
+
+evalExpressions :: [LispVal] -> ThrowsError LispVal
+evalExpressions [expr] = eval expr
+evalExpressions (expr: expressions) = do
+    eval expr
+    evalExpressions expressions
 
 isNumber :: LispVal -> Bool
 isNumber (Number _) = True
