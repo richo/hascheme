@@ -147,6 +147,7 @@ primitives = [("+", numericBinop (+)),
               ("<=", numBoolBinop (<=)),
               ("&&", boolBoolBinop (&&)),
               ("||", boolBoolBinop (||)),
+              ("car", car),
               ("string=?", strBoolBinop (==)),
               ("string<?", strBoolBinop (<)),
               ("string>?", strBoolBinop (>)),
@@ -216,6 +217,12 @@ unpackNum (String n) = let parsed = reads n in
                             else return $ fst $ parsed !! 0
 unpackNum (List [n]) = unpackNum n
 unpackNum notNum = throwError $ TypeMismatch "number" notNum
+
+car :: [LispVal] -> ThrowsError LispVal
+car [List (x : xs)] = return x
+car [DottedList (x : xs) _] = return x
+car [badArg] = throwError $ TypeMismatch "pair" badArg
+car badArgList = throwError $ NumArgs 1 badArgList
 
 instance Show LispVal where show = showVal
 
