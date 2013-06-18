@@ -135,7 +135,8 @@ primitives = [("+", numericBinop (+)),
               ("number?", typePredicate isNumber)]
 
 typePredicate :: (LispVal -> Bool) -> [LispVal] -> ThrowsError LispVal
-typePredicate predicate params = return $ Bool $ predicate $ head params
+typePredicate predicate singleVal@[_] = return $ Bool $ predicate $ head singleVal
+typePredicate op params = throwError $ NumArgs 1 params
 
 isNumber :: LispVal -> Bool
 isNumber (Number _) = True
