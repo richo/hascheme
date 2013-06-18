@@ -120,7 +120,7 @@ eval (List [Atom "if", pred, conseq, alt]) =
        case result of
          Bool False -> eval alt
          otherwise -> eval conseq
-
+eval (List (Atom "cond" : clauses)) = do evalCond clauses
 eval (List (Atom func : args))  = mapM eval args >>= apply func
 eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
@@ -187,6 +187,19 @@ unpackBool :: LispVal -> ThrowsError Bool
 unpackBool (Bool b) = return b
 unpackBool notBool = throwError $ TypeMismatch "boolean" notBool
 
+-- TODO can't have multiple expressions in result
+evalCond :: [LispVal] -> ThrowsError LispVal
+evalCond [List [Atom "else", result]] = eval result
+evalCond [List [predicate, result]] = do
+    b <- eval predicate
+    case b of
+        (Bool False)    -> return b
+        otherwise       -> eval result
+evalCond (List [predicate, result]:cs) = do
+    b <- eval predicate
+    case b of
+        (Bool False) -> evalCond cs
+        otherwise    -> eval result
 
 isNumber :: LispVal -> Bool
 isNumber (Number _) = True
