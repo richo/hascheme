@@ -132,11 +132,46 @@ primitives = [("+", numericBinop (+)),
               ("symbol->string", atomToString),
               ("string->symbol", stringToAtom),
               ("string?", typePredicate isString),
-              ("number?", typePredicate isNumber)]
+              ("number?", typePredicate isNumber),
+              ("=", numBoolBinop (==)),
+              ("<", numBoolBinop (<)),
+              (">", numBoolBinop (>)),
+              ("/=", numBoolBinop (/=)),
+              (">=", numBoolBinop (>=)),
+              ("<=", numBoolBinop (<=)),
+              ("&&", boolBoolBinop (&&)),
+              ("||", boolBoolBinop (||)),
+              ("string=?", strBoolBinop (==)),
+              ("string<?", strBoolBinop (<)),
+              ("string>?", strBoolBinop (>)),
+              ("string<=?", strBoolBinop (<=)),
+              ("string>=?", strBoolBinop (>=))]
 
 typePredicate :: (LispVal -> Bool) -> [LispVal] -> ThrowsError LispVal
 typePredicate predicate singleVal@[_] = return $ Bool $ predicate $ head singleVal
 typePredicate op params = throwError $ NumArgs 1 params
+
+boolBinop :: (LispVal -> ThrowsError a) -> (a -> a -> Bool) -> [LispVal] -> ThrowsError LispVal
+boolBinop unpacker op args = if length args /= 2
+                             then throwError $ NumArgs 2 args
+                             else do left <- unpacker $ args !! 0
+                                     right <- unpacker $ args !! 1
+                                     return $ Bool $ left `op` right
+
+numBoolBinop = boolBinop unpackNum
+strBoolBinop = boolBinop unpackStr
+boolBoolBinop = boolBinop unpackBool
+
+unpackStr :: LispVal -> ThrowsError String
+unpackStr (String s) = return s
+unpackStr (Number s) = return $ show s
+unpackStr (Bool s) = return $ show s
+unpackStr notString = throwError $ TypeMismatch "string" notString
+
+unpackBool :: LispVal -> ThrowsError Bool
+unpackBool (Bool b) = return b
+unpackBool notBool = throwError $ TypeMismatch "boolean" notBool
+
 
 isNumber :: LispVal -> Bool
 isNumber (Number _) = True
