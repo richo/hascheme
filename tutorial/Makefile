@@ -1,4 +1,4 @@
-all: ex1 ex2 ex3 ex4
+all: ex1 ex2 ex3 ex4 ex5
 
 .PHONY: clean
 
