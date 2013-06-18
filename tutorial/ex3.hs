@@ -91,16 +91,26 @@ primitives = [("+", numericBinop (+)),
               ("mod", numericBinop mod),
               ("quotient", numericBinop quot),
               ("remainder", numericBinop rem),
-              ("symbol?", isAtom),
+              ("symbol?", typePredicate isAtom),
               ("symbol->string", atomToString),
               ("string->symbol", stringToAtom),
-              ("number?", isNumber),
-              ("string?", isString)]
+              ("string?", typePredicate isString),
+              ("number?", typePredicate isNumber)]
 
-isAtom :: [LispVal] -> LispVal
-isAtom params = case head params of
-                    (Atom _) -> Bool True
-                    _        -> Bool False
+typePredicate :: (LispVal -> Bool) -> [LispVal] -> LispVal
+typePredicate predicate params = Bool $ predicate $ head params
+
+isNumber :: LispVal -> Bool
+isNumber (Number _) = True
+isNumber _          = False
+
+isAtom :: LispVal -> Bool
+isAtom (Atom _) = True
+isAtom _        = False
+
+isString :: LispVal -> Bool
+isString (String _) = True
+isString _          = False
 
 atomToString :: [LispVal] -> LispVal
 atomToString params = case head params of
@@ -110,16 +120,6 @@ atomToString params = case head params of
 stringToAtom :: [LispVal] -> LispVal
 stringToAtom params = case head params of
                     (String n) -> Atom n
-                    _          -> Bool False
-
-isNumber :: [LispVal] -> LispVal
-isNumber params = case head params of
-                    (Number _) -> Bool True
-                    _          -> Bool False
-
-isString :: [LispVal] -> LispVal
-isString params = case head params of
-                    (String _) -> Bool True
                     _          -> Bool False
 
 
