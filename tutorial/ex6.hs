@@ -152,20 +152,25 @@ showVal (Bool False)           = "#f"
 showVal (List contents)        = "(" ++ unwordsList contents ++ ")"
 showVal (DottedList head tail) = "(" ++ unwordsList head ++ " . " ++ showVal tail ++ ")"
 
-eval :: LispVal -> ThrowsError LispVal
-eval val@(String _)             = return val
-eval val@(Number _)             = return val
-eval val@(Bool _)               = return val
-eval (List [Atom "quote", val]) = return val
-eval (List [Atom "if", pred, conseq, alt]) =
-    do result <- eval pred
+eval :: Env -> LispVal -> IOThrowsError LispVal
+eval env val@(String _)             = return val
+eval env val@(Number _)             = return val
+eval env val@(Bool _)               = return val
+eval env (Atom id)                  = getVar env id
+eval env (List [Atom "quote", val]) = return val
+eval env (List [Atom "if", pred, conseq, alt]) =
+    do result <- eval env pred
        case result of
-         Bool False -> eval alt
-         otherwise -> eval conseq
-eval (List (Atom "cond" : clauses)) = do evalCond clauses
-eval (List (Atom "begin": expressions)) = do evalExpressions expressions
-eval (List (Atom func : args))  = mapM eval args >>= apply func
-eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
+         Bool False -> eval env alt
+         otherwise -> eval env conseq
+eval env (List (Atom "cond" : clauses)) = do evalCond env clauses
+eval env (List (Atom "begin": expressions)) = do evalExpressions env expressions
+eval env (List [Atom "set!", Atom var, form]) =
+    eval env form >>= setVar env var
+eval env (List [Atom "define", Atom var, form]) =
+    eval env form >>= defineVar env var
+eval env (List (Atom func : args))  = mapM (eval env) args >>= liftThrows . apply func
+eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
 apply :: String -> [LispVal] -> ThrowsError LispVal
 apply func args = maybe (throwError $ NotFunction "Unrecognized primitive function args" func)
@@ -231,24 +236,24 @@ unpackBool (Bool b) = return b
 unpackBool notBool = throwError $ TypeMismatch "boolean" notBool
 
 -- TODO can't have multiple expressions in result
-evalCond :: [LispVal] -> ThrowsError LispVal
-evalCond [List [Atom "else", result]] = eval result
-evalCond [List [predicate, result]] = do
-    b <- eval predicate
+evalCond :: Env -> [LispVal] -> IOThrowsError LispVal
+evalCond env [List [Atom "else", result]] = eval env result
+evalCond env [List [predicate, result]] = do
+    b <- eval env predicate
     case b of
         (Bool False)    -> return b
-        otherwise       -> eval result
-evalCond (List [predicate, result]:cs) = do
-    b <- eval predicate
+        otherwise       -> eval env result
+evalCond env (List [predicate, result]:cs) = do
+    b <- eval env predicate
     case b of
-        (Bool False) -> evalCond cs
-        otherwise    -> eval result
+        (Bool False) -> evalCond env cs
+        otherwise    -> eval env result
 
-evalExpressions :: [LispVal] -> ThrowsError LispVal
-evalExpressions [expr] = eval expr
-evalExpressions (expr: expressions) = do
-    eval expr
-    evalExpressions expressions
+evalExpressions :: Env -> [LispVal] -> IOThrowsError LispVal
+evalExpressions env [expr] = eval env expr
+evalExpressions env (expr: expressions) = do
+    eval env expr
+    evalExpressions env expressions
 
 isNumber :: LispVal -> Bool
 isNumber (Number _) = True
@@ -353,11 +358,12 @@ flushStr str = putStr str >> hFlush stdout
 readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
-evalString :: String -> IO String
-evalString expr = return $ extractValue $ trapError (liftM show $ readExpr expr >>= eval)
+evalAndPrint :: Env -> String -> IO ()
+evalAndPrint env expr =  evalString env expr >>= putStrLn
 
-evalAndPrint :: String -> IO ()
-evalAndPrint expr = evalString expr >>= putStrLn
+evalString :: Env -> String -> IO String
+evalString env expr = runIOThrows $ liftM show $ (liftThrows $ readExpr expr) >>= eval env
+
 
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
 until_ pred prompt action = do
@@ -366,13 +372,16 @@ until_ pred prompt action = do
      then return ()
      else action result >> until_ pred prompt action
 
+runOne :: String -> IO ()
+runOne expr = nullEnv >>= flip evalAndPrint expr
+
 runRepl :: IO () -- Catch ^D
-runRepl = until_ (== "quit") (readPrompt "scm% ") evalAndPrint
+runRepl = nullEnv >>= until_ (== "quit") (readPrompt "scm% ") . evalAndPrint
 
 main :: IO ()
 main = do
     args <- getArgs
     case length args of
         0 -> runRepl
-        1 -> evalAndPrint $ head args
+        1 -> runOne $ head args
         otherwise -> putStrLn "usage $0 <expression>"
