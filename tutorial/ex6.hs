@@ -5,6 +5,7 @@ import System.Environment
 import System.IO
 import Control.Monad
 import Control.Monad.Error
+import Data.IORef
 
 symbol :: Parser Char
 symbol = oneOf "!#$%^|*+-/:<=>?@^_~"
@@ -47,6 +48,19 @@ instance Error LispError where
      strMsg = Default
 
 type ThrowsError = Either LispError
+type IOThrowsError = ErrorT LispError IO
+
+type Env = IORef [(String, IORef LispVal)]
+
+nullEnv :: IO Env
+nullEnv = newIORef []
+
+liftThrows :: ThrowsError a -> IOThrowsError a
+liftThrows (Left err)  = throwError err
+liftThrows (Right val) = return val
+
+runIOThrows :: IOThrowsError String -> IO String
+runIOThrows action = runErrorT (trapError action) >>= return . extractValue
 
 trapError action = catchError action (return . show)
 
