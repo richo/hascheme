@@ -19,6 +19,9 @@ data LispVal = Atom String
              | Number Integer
              | String String
              | Bool Bool
+             | PrimitiveFunc ([LispVal] -> ThrowsError LispVal)
+             | Func {params :: [String], vararg :: (Maybe String),
+                      body :: [LispVal], closure :: Env}
 
 data LispError = NumArgs Integer [LispVal]
                | TypeMismatch String LispVal
@@ -151,6 +154,12 @@ showVal (Bool True)            = "#t"
 showVal (Bool False)           = "#f"
 showVal (List contents)        = "(" ++ unwordsList contents ++ ")"
 showVal (DottedList head tail) = "(" ++ unwordsList head ++ " . " ++ showVal tail ++ ")"
+showVal (PrimitiveFunc _) = "<primitive>"
+showVal (Func {params = args, vararg = varargs, body = body, closure = env}) =
+    "(lambda (" ++ unwords (map show args) ++
+        (case varargs of
+            Nothing  -> ""
+            Just arg -> " . " ++ arg) ++ ") ..."
 
 eval :: Env -> LispVal -> IOThrowsError LispVal
 eval env val@(String _)             = return val
