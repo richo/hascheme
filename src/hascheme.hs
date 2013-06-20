@@ -24,8 +24,10 @@ data LispVal = Atom String
                       body :: [LispVal], closure :: Env}
              | IOFunc ([LispVal] -> IOThrowsError LispVal)
              | Port Handle
-             | Continuation {params :: [String], vararg :: (Maybe String),
-                      body :: [LispVal], closure :: Env}
+             | Cont {cont :: LispVal, closure :: Env}
+
+type Continuation = IOThrowsError
+
 
 data LispError = NumArgs Integer [LispVal]
                | TypeMismatch String LispVal
@@ -456,11 +458,17 @@ flushStr str = putStr str >> hFlush stdout
 readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
-evalAndPrint :: Env -> String -> IO ()
-evalAndPrint env expr =  evalString env expr >>= putStrLn
+-- Exposes a continuation-like thing
+printContinuation :: ThrowsError LispVal -> IO ()
+printContinuation value = putStrLn $ show value
 
-evalString :: Env -> String -> IO String
-evalString env expr = runIOThrows $ liftM show $ (liftThrows $ readExpr expr) >>= eval env
+
+-- evalAndPrint sets up a meta-continuation that'll explicitly print it's value when called
+evalAndPrint :: Env -> String -> IO ()
+evalAndPrint env expr = printContinuation $ evalString env expr
+
+evalString :: Env -> String -> LispVal
+evalString env expr = runIOThrows $ (liftThrows $ readExpr expr) >>= eval env
 
 
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
