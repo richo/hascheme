@@ -24,6 +24,8 @@ data LispVal = Atom String
                       body :: [LispVal], closure :: Env}
              | IOFunc ([LispVal] -> IOThrowsError LispVal)
              | Port Handle
+             | Continuation {params :: [String], vararg :: (Maybe String),
+                      body :: [LispVal], closure :: Env}
 
 data LispError = NumArgs Integer [LispVal]
                | TypeMismatch String LispVal
