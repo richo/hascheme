@@ -111,11 +111,26 @@ bindVars envRef bindings = readIORef envRef >>= extendEnv bindings >>= newIORef
           addBinding (var, value) = do ref <- newIORef value
                                        return (var, ref)
 
+escapedinnerstring :: Parser Char
+escapedinnerstring = do
+                     c <- anyChar
+                     return $ case c of
+                        'n'  -> '\n'
+                        'r'  -> '\r'
+                        't'  -> '\t'
+                        '"'  -> '"'
+                        other->other
+
+innerstring :: Parser Char
+innerstring = do
+              c <- anyChar
+              case c of
+                '\\'    -> escapedinnerstring
+                other   -> return other
 
 parseString :: Parser LispVal
 parseString = do char '"' -- Read until we find this char
-                 x <- many (noneOf "\"")
-                 char '"'
+                 x <- manyTill innerstring $ char '"'
                  return $ String x
 
 parseAtom :: Parser LispVal
